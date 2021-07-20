@@ -2,7 +2,7 @@ from PIL import Image, ImageDraw
 import numpy as np
 
 width, height = 300,300
-def drawConfig(E):
+def draw_config(E):
   image = Image.new('RGB', (width, height), (255,255,255))
   image1 = ImageDraw.Draw(image)
   line = [50,250,250,250]
@@ -31,22 +31,13 @@ def drawConfig(E):
   image1.ellipse([50-r,250-r,50+r,250+r], fill='black')
   return image
 
-def scoreImage(image):
-  O = []
-  for j in range(299,0,-100):
-    for i in range(0,300,100):
-      if j==199 and i==100:
-        continue
-      diff=0
-      for i2 in range(100):
-        for j2 in range(100):
-          x= sum(image.getpixel((i+i2,j-j2))) < 127*3
-          xT= sum(targetImage.getpixel((i+i2,j-j2))) < 127*3
-          if x==xT:
-            diffPix[i+i2,j-j2]=(0,255,0)
-          else:
-            diffPix[i+i2,j-j2]=(255,0,0)
-            diff+=1
-      O.append(diff)
+def score_image(image):
+  O = np.zeros(8)
+  for x in range(width):
+    for y in range(height):
+      if sum(image.getpixel((x, y))) < 127*3:
+        a = np.arctan2(x - 150, y - 150)
+        i = int(4 * a / np.pi + 4) % 8
+        O[i]+=1
   return O
 
