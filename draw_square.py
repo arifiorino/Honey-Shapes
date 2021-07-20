@@ -31,6 +31,18 @@ def draw_config(E):
   image1.ellipse([50-r,250-r,50+r,250+r], fill='black')
   return image
 
+colors=[(255,0,0),(255,255,0),(0,255,0),(0,255,255),(0,0,255),
+        (255,0,255),(127,0,0),(127,127,0)]
+'''
+deps = \
+[[1,0,0,0,0,0,0,0,0,0,1,1,1],
+ [1,1,1,0,0,0,0,0,0,0,1,1,1],
+ [0,1,1,1,1,0,0,0,0,0,0,0,0],
+ [0,0,0,1,1,1,0,0,0,0,0,0,0],
+ [0,0,0,0,1,1,1,1,0,0,0,0,0],
+ [0,0,0,0,0,0,1,1,1,0,0,0,0],
+ [0,0,0,0,0,0,0,1,1,1,1,0,0],
+ [0,0,0,0,0,0,0,0,0,1,1,1,0]]
 def score_image(image):
   O = np.zeros(8)
   for x in range(width):
@@ -40,4 +52,18 @@ def score_image(image):
         i = int(4 * a / np.pi + 4) % 8
         O[i]+=1
   return O
+'''
 
+def score_image(image):
+  global count
+  O = []
+  for j in range(299,0,-100):
+    for i in range(0,300,100):
+      if j==199 and i==100:
+        continue
+      O.append(0)
+      for i2 in range(100):
+        for j2 in range(100):
+          if sum(image.getpixel((i+i2,j-j2))) < 127*3:
+            O[-1]+=1
+  return np.array(O)
