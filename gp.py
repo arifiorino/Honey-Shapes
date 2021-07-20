@@ -1,16 +1,5 @@
 import numpy as np
-import scipy.optimize, sys
 
-#LSQ!!
-N,M=4,3
-K = np.array([[1,0,0,0],[0.5,0.5,0,0],[0.25,0.25,0.25,0.25]]) #Constants calculated
-T = np.array([2,3,1]) #Target extrusions
-res = scipy.optimize.lsq_linear(K, T, bounds=(0, np.inf))
-E = res['x']
-print(res)
-sys.exit()
-
-#GP!!
 RBF_SIGMA = 1
 EPSILON = 0.01
 RBF = lambda a, b: np.exp(-np.dot(a-b, a-b)/(2*RBF_SIGMA**2))
