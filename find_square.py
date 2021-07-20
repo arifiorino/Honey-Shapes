@@ -36,7 +36,8 @@ for i in range(8):
     if deps[i][j]:
       K[i,j]=Ks[idx]
       idx+=1
-res = scipy.optimize.lsq_linear(K, target_O, bounds=(0,0.02))
+print(K)
+res = scipy.optimize.lsq_linear(K, target_O, bounds=(0,np.inf))
 E = res['x']
 
 im = draw_config(E)
