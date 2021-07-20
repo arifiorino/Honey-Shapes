@@ -21,13 +21,13 @@ def draw_config(E):
   if E[10] < 0.01:
     line[1] = 50+(1-(E[10]/0.01))*100
   image1.line(line, fill='black', width=20)
-  r = (E[0]+E[1]+E[2]+E[3])/0.016*10
+  r = np.sqrt(E[0]+E[1]+E[2]+E[3])/0.125*10
   image1.ellipse([250-r,250-r,250+r,250+r], fill='black')
-  r = (E[4]+E[5]+E[6])/0.01*10
+  r = np.sqrt(E[4]+E[5]+E[6])/0.1*10
   image1.ellipse([250-r,50-r,250+r,50+r], fill='black')
-  r = (E[7]+E[8]+E[9])/0.01*10
+  r = np.sqrt(E[7]+E[8]+E[9])/0.1*10
   image1.ellipse([50-r,50-r,50+r,50+r], fill='black')
-  r = (E[10]+E[11]+E[12])/0.01*10
+  r = np.sqrt(E[10]+E[11]+E[12])/0.1*10
   image1.ellipse([50-r,250-r,50+r,250+r], fill='black')
   return image
 

@@ -30,7 +30,6 @@ for i in range(8):
       deletes.append(j)
   my_test_E = np.delete(test_E, deletes, 1)
   res = scipy.optimize.lsq_linear(my_test_E, Os, bounds=(0,np.inf))
-  #print('err',sum(res['fun'])/N_test)
   Ks = res['x']
   idx=0
   for j in range(13):
@@ -44,4 +43,3 @@ im = draw_config(E)
 im.show()
 O = score_image(im)
 print(E)
-print(O)
