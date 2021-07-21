@@ -1,6 +1,6 @@
 import sys, scipy.optimize
 import numpy as np
-from draw_square import draw_config, score_image
+from draw_square import draw_config, score_image, deps
 
 target_image = draw_config([0.006,0.01,0,0,0.01,0,0,0.01,0,0,0.01,0,0])
 target_O = score_image(target_image)
@@ -10,16 +10,6 @@ test_E = np.random.rand(N_test, 13) * 0.015
 test_O = np.zeros((N_test, 8))
 for i in range(N_test):
   test_O[i] = score_image(draw_config(test_E[i]))
-
-deps = \
-[[1,1,0,0,0,0,0,0,0,0,1,1,1],
- [1,1,1,0,0,0,0,0,0,0,0,0,0],
- [0,1,1,1,1,0,0,0,0,0,0,0,0],
- [0,0,0,0,0,0,0,0,0,0,1,1,0],
- [0,0,0,0,1,1,0,0,0,0,0,0,0],
- [0,0,0,0,0,0,0,1,1,1,1,0,0],
- [0,0,0,0,0,0,0,1,1,0,0,0,0],
- [0,0,0,0,1,1,1,1,0,0,0,0,0]]
 
 K = np.zeros((8, 13))
 for i in range(8):

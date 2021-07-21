@@ -31,16 +31,26 @@ def draw_config(E):
   image1.ellipse([50-r,250-r,50+r,250+r], fill='black')
   return image
 
+O_pos = [(0,100,200,300),(100,200,200,300),(200,300,200,300),
+           (200,300,100,200),(200,300,0,100),(100,200,0,100),
+           (0,100,0,100),(0,100,100,200)]
+
 def score_image(image):
-  global count
-  O = []
-  for j in range(299,0,-100):
-    for i in range(0,300,100):
-      if j==199 and i==100:
-        continue
-      O.append(0)
-      for i2 in range(100):
-        for j2 in range(100):
-          if sum(image.getpixel((i+i2,j-j2))) < 127*3:
-            O[-1]+=1
+  O = np.zeros((len(O_pos),))
+  idx=0
+  for L,R,T,B in O_pos:
+    for x in range(L,R):
+      for y in range(T,B):
+        if sum(image.getpixel((x,y))) < 127*3:
+          O[idx]+=1
+    idx+=1
   return np.array(O)
+
+E_pos = [0,0,1,2,2,3,4,4,5,6,6,7,0]
+deps = np.zeros((8,13),dtype=int)
+for idx in range(8):
+  for end in range(len(E_pos)):
+    if E_pos[end] == idx:
+      start = max(0,end-4)
+      for x in range(start,end+1):
+        deps[idx,x]=1

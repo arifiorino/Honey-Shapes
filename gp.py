@@ -20,9 +20,10 @@ def GP(train_x, train_y, test_x):
 train_x = np.array([[1,0,0,0], [1,0,1,0]])
 train_y = np.array([2,5.0])
 test_x = np.array([[1,0,0.1,0]])
-print('train_x', train_x, sep='\n')
-print('train_y', train_y, sep='\n')
-print('test_x', test_x, sep='\n')
 mean, stdev = GP(train_x, train_y, test_x)
-print('mean', mean, sep='\n')
-print('stdev', stdev, sep='\n')
+
+print('train_x', train_x,
+      'train_y', train_y,
+      'test_x', test_x,
+      'mean', mean,
+      'stdev', stdev, sep='\n')
