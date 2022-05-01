@@ -1,20 +1,25 @@
 #!/usr/bin/python3
-import csv, datetime, numpy as np, matplotlib.pyplot as plt
+import csv, datetime, numpy as np, matplotlib.pyplot as plt, torch
 
 ucb_mult = 2
 GP_ERROR = 0.1
 RBF_SIGMA = 2
-RBF = lambda a, b: np.exp(-np.dot(a-b, a-b)/(2*RBF_SIGMA**2))
-cov_matrix = lambda A, B: (np.fromfunction(np.vectorize(lambda i, j:
-                           RBF(A[i], B[j])), (len(A), len(B)), dtype=int))
 def GP(xs, F, x):
-  M = cov_matrix(xs, xs) + GP_ERROR * np.identity(len(xs))
-  v = cov_matrix(x, xs)
-  temp = v @ np.linalg.inv(M)
-  mean = temp @ (F)
-  var = np.fromfunction(np.vectorize(lambda i,_: RBF(x[i], x[i])), mean.shape, dtype=int)
-  var -= np.fromfunction(np.vectorize(lambda i,_: np.dot(temp[i], v[i])), mean.shape, dtype=int)
-  return (mean, var)
+  xs1 = torch.pow(xs,2)@torch.ones((xs.size()[1],1)).to('cuda')
+  xs2 = torch.cat([torch.t(xs1)]*xs.size()[0])
+  M = xs2 - 2*(xs @ torch.t(xs)) + torch.t(xs2)
+  M = torch.exp(-M/(2*RBF_SIGMA**2))
+  M += GP_ERROR * torch.eye(xs.size()[0]).to('cuda')
+  x1 = torch.pow(x,2)@torch.ones((x.size()[1],1)).to('cuda')
+  x2 = torch.cat([torch.t(x1)]*xs.size()[0])
+  xs3 = torch.cat([torch.t(xs1)]*x.size()[0])
+  v = torch.t(x2) - 2*(x @ torch.t(xs)) + xs3
+  v = torch.exp(-v/(2*RBF_SIGMA**2))
+  temp = v @ torch.linalg.inv(M)
+  mean = temp @ F
+  var = torch.ones(mean.size()).to('cuda')
+  var -= (temp*v)@(torch.ones((temp.size()[1],1)).to('cuda'))
+  return (mean.cpu().numpy(), var.cpu().numpy())
 
 with open('United_States_COVID-19_Cases_and_Deaths_by_State_over_Time.csv', 'r') as f:
   rows=[list(row) for row in csv.reader(f)][1:]
@@ -83,28 +88,27 @@ def f(deathI, deaths):
     losses+=diff[i:i+nLosses]
   return losses/(nDeaths-nLosses+1)
 
-while 1:
-  caseIs = [np.random.randint(len(gCases)-nCases+1)]
+with open('caseIs.csv','r') as fi:
+  allCaseIs=[[int(x) for x in row] for row in csv.reader(fi)]
+for expI in range(100):
+  caseIs = allCaseIs[expI]
   past_in = [np.random.choice(bins, nDeaths)]
   past_out = [f(caseIs[0], past_in[0])]
-  print(gCases[caseIs[0]:caseIs[0]+nCases],past_in[0],past_out[0])
   past_in[0]=past_in[0].tolist()
   train_x, train_y = [], []
   for t in range(100):
-    caseI = np.random.randint(len(gCases)-nCases+1)
-    print(''.join(['%7.2f'%a for a in [t]+gCases[caseIs[-1]:caseIs[-1]+nCases]+past_in[-1]+[sum(past_out[-1])]]))
-    #print('cases given', gCases[caseI:caseI+nCases])
+    caseI = caseIs[t+1]
+    print(''.join(['%7.2f'%a for a in [t]+gCases[caseI:caseI+nCases]+past_in[-1]+[sum(past_out[-1])]]))
     for lossI in range(nLosses):
       train_x.append(gCases[int(caseIs[t]+lossI):int(caseIs[t]+lossI+(nCases-nLosses+1))])
       train_x[-1].extend(past_in[t][lossI:lossI+(nDeaths-nLosses+1)])
       train_y.append([past_out[t][lossI]])
-    #print('train points added',train_x[-1],train_y[-1])
     test_x=[]
     for idx in range(nBins**nDeaths):
       a=[bins[i] for i in itol(idx,[nBins]*nDeaths)]
       for i in range(nLosses):
         test_x.append(gCases[caseI+i:caseI+i+nCases-nLosses+1]+a[i:i+(nDeaths-nLosses+1)])
-    mean, stdev = GP(np.array(train_x), np.array(train_y), np.array(test_x))
+    mean, stdev = GP(torch.Tensor(train_x).to('cuda'), torch.Tensor(train_y).to('cuda'), torch.Tensor(test_x).to('cuda'))
     #print('--ENTERING GP--')
     #for i in range(len(test_x)):
       #print(''.join(['%7.2f'%a for a in test_x[i]+[mean[i]]+[stdev[i]]]))
@@ -126,7 +130,6 @@ while 1:
     best_x = [bins[i] for i in best_x]
     #print('deaths predicted', best_x)
     #input('c?')
-    caseIs.append(caseI)
     past_in.append(best_x)
     past_out.append(f(caseI + (nCases-nDeaths), np.array(best_x)))
 
