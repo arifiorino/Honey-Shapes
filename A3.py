@@ -142,7 +142,6 @@ for expI in range(2,3):
     past_in.append(best_x)
     past_out.append(f(caseI + (nCases-nDeaths), np.array(best_x)))
 
-  '''
   # APPEND MODE
   with open('A3.csv', 'r') as fi:
     data=[list(row) for row in csv.reader(fi)]
@@ -150,7 +149,6 @@ for expI in range(2,3):
     data=[[] for _ in past_out]
   with open('A3.csv', 'w') as fi:
     csv.writer(fi).writerows([data[i]+[sum(x)] for i,x in enumerate(past_out)])
-  '''
 with open('actual.csv','w') as fi:
   csv.writer(fi).writerows([[dates[i],d] for i,d in enumerate(deaths)])
 with open('points.csv','w') as fi:

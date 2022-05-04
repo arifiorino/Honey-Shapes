@@ -29,6 +29,7 @@ rows.sort(key=lambda s:s[0])
 # filter before 11/2021, after 7/2020
 rows = [row for row in rows if row[0]<=datetime.datetime(year=2021,month=11,day=1)]
 rows = [row for row in rows if row[0]>=datetime.datetime(year=2020,month=10,day=1)]
+
 states=set([row[1] for row in rows])
 cases,deaths=None,None
 for state in states:
@@ -94,7 +95,7 @@ def f(deathI, deaths):
 #with open('starts_large.csv','r') as fi:
   #starts=[[int(x) for x in row] for row in csv.reader(fi)]
 points = []
-for expI in range(100):
+for expI in range(1):
   print('exp',expI)
   #caseIs = allCaseIs[expI]
   caseIs = np.random.randint(len(gCases)-nCases+1,size=101).tolist()
@@ -121,9 +122,8 @@ for expI in range(100):
         test_x.append(gCases[caseI+i:caseI+i+nCases-nLosses+1]+best_x[i:i+nDeaths-nLosses]+[a])
       mean, stdev = GP(torch.Tensor(train_x).to('cuda'), torch.Tensor(train_y).to('cuda'), torch.Tensor(test_x).to('cuda'))
       best_x.append(bins[np.argmin(mean - ucb_mult * stdev)])
-    if t>50:
-      for i in range(nDeaths):
-        points.append([dates[caseI+nCases-nDeaths+i],best_x[i]])
+    for i in range(nDeaths):
+      points.append([dates[caseI+nCases-nDeaths+i],best_x[i]])
     past_in.append(best_x)
     past_out.append(f(caseI + (nCases-nDeaths), np.array(best_x)))
 
@@ -138,6 +138,28 @@ for expI in range(100):
     csv.writer(fi).writerows([data[i]+[sum(x)] for i,x in enumerate(past_out)])
 with open('actual.csv','w') as fi:
   csv.writer(fi).writerows([[dates[i],d] for i,d in enumerate(gDeaths)])
+
 with open('points.csv','w') as fi:
+  csv.writer(fi).writerows(points)
+
+print("PREDICTING DEATHS")
+points=[]
+for caseI in range(0,len(gCases)-nCases,nDeaths):
+  print(caseI)
+  test_x=[]
+  for idx in range(nBins**(nDeaths-nLosses+1)):
+    d = itol(idx, [nBins]*(nDeaths-nLosses+1))
+    test_x.append(gCases[caseI:caseI+nCases-nLosses+1] + [bins[x] for x in d])
+  mean, stdev = GP(torch.Tensor(train_x).to('cuda'), torch.Tensor(train_y).to('cuda'), torch.Tensor(test_x).to('cuda'))
+  best_x = test_x[np.argmin(mean)][nCases-nLosses+1:]
+  for i in range(1,nLosses):
+    test_x=[]
+    for a in bins:
+      test_x.append(gCases[caseI+i:caseI+i+nCases-nLosses+1]+best_x[i:i+nDeaths-nLosses]+[a])
+    mean, stdev = GP(torch.Tensor(train_x).to('cuda'), torch.Tensor(train_y).to('cuda'), torch.Tensor(test_x).to('cuda'))
+    best_x.append(bins[np.argmin(mean)])
+  for i in range(nDeaths):
+    points.append([dates[caseI+nCases-nDeaths+i],best_x[i]])
+with open('points2.csv','w') as fi:
   csv.writer(fi).writerows(points)
 
