@@ -18,8 +18,9 @@ def GP(xs, F, x):
   temp = v @ torch.linalg.inv(M)
   mean = temp @ F
   var = torch.ones(mean.size()).to('cuda')
-  var -= (temp*v)@(torch.ones((temp.size()[1],1)).to('cuda'))
-  return (mean.cpu().numpy(), var.cpu().numpy())
+  var -= (temp*v)@torch.ones((temp.size()[1],1)).to('cuda')
+  stdev = torch.sqrt(var)
+  return (mean.cpu().numpy(), stdev.cpu().numpy())
 
 with open('United_States_COVID-19_Cases_and_Deaths_by_State_over_Time.csv', 'r') as f:
   rows=[list(row) for row in csv.reader(f)][1:]
@@ -27,6 +28,7 @@ rows = [[datetime.datetime.strptime(row[0], '%m/%d/%Y')]+row[1:-3] for row in ro
 rows.sort(key=lambda s:s[0])
 # filter before omicron
 rows = [row for row in rows if row[0]<=datetime.datetime(year=2021,month=11,day=1)]
+rows = [row for row in rows if row[0]>=datetime.datetime(year=2020,month=10,day=1)]
 states=set([row[1] for row in rows])
 cases,deaths=None,None
 for state in states:
@@ -77,7 +79,7 @@ def itol(idx, mods):
   return r
 
 gCases, gDeaths = cases, deaths
-nCases = 8
+nCases = 30
 nDeaths = 6
 nLosses = 4
 
@@ -88,15 +90,19 @@ def f(deathI, deaths):
     losses+=diff[i:i+nLosses]
   return losses/(nDeaths-nLosses+1)
 
-with open('caseIs.csv','r') as fi:
-  allCaseIs=[[int(x) for x in row] for row in csv.reader(fi)]
-for expI in range(100):
-  caseIs = allCaseIs[expI]
-  past_in = [np.random.choice(bins, nDeaths)]
+#with open('caseIs_large.csv','r') as fi:
+  #allCaseIs=[[int(x) for x in row] for row in csv.reader(fi)]
+#with open('starts.csv','r') as fi:
+  #starts=[[int(x) for x in row] for row in csv.reader(fi)]
+points=[]
+for expI in range(2,3):
+  #caseIs = allCaseIs[expI]
+  caseIs = np.random.randint(len(gCases)-nCases+1,size=201).tolist()
+  #past_in = [[bins[i] for i in starts[expI]]]
+  past_in = [np.random.choice(bins, nDeaths).tolist()]
   past_out = [f(caseIs[0], past_in[0])]
-  past_in[0]=past_in[0].tolist()
   train_x, train_y = [], []
-  for t in range(100):
+  for t in range(200):
     caseI = caseIs[t+1]
     print(''.join(['%7.2f'%a for a in [t]+gCases[caseI:caseI+nCases]+past_in[-1]+[sum(past_out[-1])]]))
     for lossI in range(nLosses):
@@ -130,9 +136,13 @@ for expI in range(100):
     best_x = [bins[i] for i in best_x]
     #print('deaths predicted', best_x)
     #input('c?')
+    if t>50:
+      for i in range(nDeaths):
+        points.append([dates[caseI+nCases-nDeaths+i],best_x[i]])
     past_in.append(best_x)
     past_out.append(f(caseI + (nCases-nDeaths), np.array(best_x)))
 
+  '''
   # APPEND MODE
   with open('A3.csv', 'r') as fi:
     data=[list(row) for row in csv.reader(fi)]
@@ -140,6 +150,9 @@ for expI in range(100):
     data=[[] for _ in past_out]
   with open('A3.csv', 'w') as fi:
     csv.writer(fi).writerows([data[i]+[sum(x)] for i,x in enumerate(past_out)])
-
-
+  '''
+with open('actual.csv','w') as fi:
+  csv.writer(fi).writerows([[dates[i],d] for i,d in enumerate(deaths)])
+with open('points.csv','w') as fi:
+  csv.writer(fi).writerows(points)
 
