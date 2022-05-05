@@ -1,9 +1,9 @@
 #!/usr/bin/python3
-import csv, datetime, numpy as np, matplotlib.pyplot as plt, torch
+import csv, datetime, numpy as np, matplotlib.pyplot as plt, torch, os
 
-ucb_mult = 2
-GP_ERROR = 0.1
-RBF_SIGMA = 2
+ucb_mult = 1
+GP_ERROR = 0.05
+RBF_SIGMA = 1
 def GP(xs, F, x):
   xs1 = torch.pow(xs,2)@torch.ones((xs.size()[1],1)).to('cuda')
   xs2 = torch.cat([torch.t(xs1)]*xs.size()[0])
@@ -26,7 +26,7 @@ with open('United_States_COVID-19_Cases_and_Deaths_by_State_over_Time.csv', 'r')
   rows=[list(row) for row in csv.reader(f)][1:]
 rows = [[datetime.datetime.strptime(row[0], '%m/%d/%Y')]+row[1:-3] for row in rows]
 rows.sort(key=lambda s:s[0])
-# filter before omicron
+# filter before 11/2021, after 7/2020
 rows = [row for row in rows if row[0]<=datetime.datetime(year=2021,month=11,day=1)]
 rows = [row for row in rows if row[0]>=datetime.datetime(year=2020,month=10,day=1)]
 states=set([row[1] for row in rows])
@@ -88,23 +88,24 @@ def f(deathI, deaths):
   losses = np.zeros(nLosses)
   for i in range(nDeaths-nLosses+1):
     losses+=diff[i:i+nLosses]
-  return losses/(nDeaths-nLosses+1)
+  return (losses/(nDeaths-nLosses+1)).tolist()
 
-#with open('caseIs_large.csv','r') as fi:
+#with open('caseIs.csv','r') as fi:
   #allCaseIs=[[int(x) for x in row] for row in csv.reader(fi)]
 #with open('starts.csv','r') as fi:
   #starts=[[int(x) for x in row] for row in csv.reader(fi)]
 points=[]
-for expI in range(2,3):
+for expI in range(1):
+  print('exp',expI)
   #caseIs = allCaseIs[expI]
-  caseIs = np.random.randint(len(gCases)-nCases+1,size=201).tolist()
+  caseIs = np.random.randint(len(gCases)-nCases+1,size=101).tolist()
   #past_in = [[bins[i] for i in starts[expI]]]
   past_in = [np.random.choice(bins, nDeaths).tolist()]
-  past_out = [f(caseIs[0], past_in[0])]
+  past_out = [f(caseIs[0] + (nCases-nDeaths), past_in[0])]
   train_x, train_y = [], []
-  for t in range(200):
+  for t in range(100):
     caseI = caseIs[t+1]
-    print(''.join(['%7.2f'%a for a in [t]+gCases[caseI:caseI+nCases]+past_in[-1]+[sum(past_out[-1])]]))
+    #print(''.join(['%7.2f'%a for a in [t]+gCases[caseI:caseI+nCases]+past_in[-1]+[sum(past_out[-1])]]))
     for lossI in range(nLosses):
       train_x.append(gCases[int(caseIs[t]+lossI):int(caseIs[t]+lossI+(nCases-nLosses+1))])
       train_x[-1].extend(past_in[t][lossI:lossI+(nDeaths-nLosses+1)])
@@ -115,42 +116,54 @@ for expI in range(2,3):
       for i in range(nLosses):
         test_x.append(gCases[caseI+i:caseI+i+nCases-nLosses+1]+a[i:i+(nDeaths-nLosses+1)])
     mean, stdev = GP(torch.Tensor(train_x).to('cuda'), torch.Tensor(train_y).to('cuda'), torch.Tensor(test_x).to('cuda'))
-    #print('--ENTERING GP--')
-    #for i in range(len(test_x)):
-      #print(''.join(['%7.2f'%a for a in test_x[i]+[mean[i]]+[stdev[i]]]))
-    #print('--EXITING GP--')
-    #input('c?')
     best_x=None
     best_y=1e10
-    #print('--ENTERING DECISION MAKING--')
     for idx in range(nBins**nDeaths):
       y=np.sum(mean[idx*nLosses:(idx+1)*nLosses]-ucb_mult*stdev[idx*nLosses:(idx+1)*nLosses])
-      #print(''.join(['%7.2f'%a for a in [bins[i] for i in itol(idx,[nBins]*nDeaths)]+\
-            #(mean[idx*nLosses:(idx+1)*nLosses]).T[0].tolist()+\
-            #(ucb_mult*stdev[idx*nLosses:(idx+1)*nLosses]).T[0].tolist()+\
-            #[y]]))
       if y<best_y:
         best_x=itol(idx,[nBins]*nDeaths)
         best_y=y
-    #print('--EXITING DECISION MAKING--')
     best_x = [bins[i] for i in best_x]
-    #print('deaths predicted', best_x)
-    #input('c?')
-    if t>50:
-      for i in range(nDeaths):
-        points.append([dates[caseI+nCases-nDeaths+i],best_x[i]])
+    for i in range(nDeaths):
+      points.append([dates[caseI+nCases-nDeaths+i],best_x[i]])
     past_in.append(best_x)
     past_out.append(f(caseI + (nCases-nDeaths), np.array(best_x)))
 
   # APPEND MODE
-  with open('A3.csv', 'r') as fi:
-    data=[list(row) for row in csv.reader(fi)]
+  filename='A3.csv'
+  data=[]
+  if os.path.isfile(filename):
+    with open(filename, 'r') as fi:
+      data=[list(row) for row in csv.reader(fi)]
   if len(data)==0:
     data=[[] for _ in past_out]
-  with open('A3.csv', 'w') as fi:
+  with open(filename, 'w') as fi:
     csv.writer(fi).writerows([data[i]+[sum(x)] for i,x in enumerate(past_out)])
 with open('actual.csv','w') as fi:
-  csv.writer(fi).writerows([[dates[i],d] for i,d in enumerate(deaths)])
+  csv.writer(fi).writerows([[dates[i],d] for i,d in enumerate(gDeaths)])
 with open('points.csv','w') as fi:
+  csv.writer(fi).writerows(points)
+
+print("PREDICTING DEATHS")
+points=[]
+for caseI in range(0,len(gCases)-nCases,nDeaths):
+  print(caseI)
+  test_x=[]
+  for idx in range(nBins**nDeaths):
+    a=[bins[i] for i in itol(idx,[nBins]*nDeaths)]
+    for i in range(nLosses):
+      test_x.append(gCases[caseI+i:caseI+i+nCases-nLosses+1]+a[i:i+(nDeaths-nLosses+1)])
+  mean, stdev = GP(torch.Tensor(train_x).to('cuda'), torch.Tensor(train_y).to('cuda'), torch.Tensor(test_x).to('cuda'))
+  best_x=None
+  best_y=1e10
+  for idx in range(nBins**nDeaths):
+    y=np.sum(mean[idx*nLosses:(idx+1)*nLosses])
+    if y<best_y:
+      best_x=itol(idx,[nBins]*nDeaths)
+      best_y=y
+  best_x = [bins[i] for i in best_x]
+  for i in range(nDeaths):
+    points.append([dates[caseI+nCases-nDeaths+i],best_x[i]])
+with open('points2.csv','w') as fi:
   csv.writer(fi).writerows(points)
 

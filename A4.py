@@ -18,7 +18,7 @@ def GP(xs, F, x):
   temp = v @ torch.linalg.inv(M)
   mean = temp @ F
   var = torch.ones(mean.size()).to('cuda')
-  var -= (temp*v)@(torch.ones((temp.size()[1],1)).to('cuda'))
+  var -= (temp*v)@torch.ones((temp.size()[1],1)).to('cuda')
   stdev = torch.sqrt(var)
   return (mean.cpu().numpy(), stdev.cpu().numpy())
 
@@ -29,7 +29,6 @@ rows.sort(key=lambda s:s[0])
 # filter before 11/2021, after 7/2020
 rows = [row for row in rows if row[0]<=datetime.datetime(year=2021,month=11,day=1)]
 rows = [row for row in rows if row[0]>=datetime.datetime(year=2020,month=10,day=1)]
-
 states=set([row[1] for row in rows])
 cases,deaths=None,None
 for state in states:
@@ -54,7 +53,7 @@ deaths = [death/avg_deaths for death in deaths]
 dates=[row[0] for row in rows if row[1]==list(states)[0]][:len(cases)]
 
 d_sort = sorted(deaths)
-nBins=40
+nBins=5
 binLen = len(d_sort)/nBins
 bins=[sum(d_sort[int(i*binLen):int((i+1)*binLen)])/binLen for i in range(nBins)]
 
@@ -90,11 +89,11 @@ def f(deathI, deaths):
   for i in range(nDeaths-nLosses+1):
     losses+=diff[i:i+nLosses]
   return (losses/(nDeaths-nLosses+1)).tolist()
-#with open('caseIs_large.csv','r') as fi:
+#with open('caseIs.csv','r') as fi:
   #allCaseIs=[[int(x) for x in row] for row in csv.reader(fi)]
-#with open('starts_large.csv','r') as fi:
+#with open('starts.csv','r') as fi:
   #starts=[[int(x) for x in row] for row in csv.reader(fi)]
-points = []
+points=[]
 for expI in range(1):
   print('exp',expI)
   #caseIs = allCaseIs[expI]
@@ -128,17 +127,17 @@ for expI in range(1):
     past_out.append(f(caseI + (nCases-nDeaths), np.array(best_x)))
 
   # APPEND MODE
-  filename=f'A4.csv'
+  filename='A4.csv'
+  data=[]
   if os.path.isfile(filename):
     with open(filename, 'r') as fi:
       data=[list(row) for row in csv.reader(fi)]
-  else:
+  if len(data)==0:
     data=[[] for _ in past_out]
   with open(filename, 'w') as fi:
     csv.writer(fi).writerows([data[i]+[sum(x)] for i,x in enumerate(past_out)])
 with open('actual.csv','w') as fi:
   csv.writer(fi).writerows([[dates[i],d] for i,d in enumerate(gDeaths)])
-
 with open('points.csv','w') as fi:
   csv.writer(fi).writerows(points)
 

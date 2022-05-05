@@ -2,8 +2,8 @@
 import matplotlib.pyplot as plt, numpy as np, csv, datetime
 
 def A3_A4():
-  files = ['A4.csv']
-  labels = ['Algo 4 Large']
+  files = ['A3.csv', 'A4.csv']
+  labels = ['Algo 3', 'Algo 4']
   datas = []
   for filename in files:
     with open(filename, 'r') as f:
@@ -20,7 +20,7 @@ def A3_A4():
   plt.legend()
   plt.show()
   #plt.savefig('A3_4.png')
-#A3_A4()
+A3_A4()
 
 def param_search():
   for ucb_mult in [1,2,5]:
@@ -34,7 +34,7 @@ def param_search():
 def points():
   with open('actual.csv') as f:
     actual=[[x,float(y)] for x,y in csv.reader(f)]
-  with open('points.csv') as f:
+  with open('points2.csv') as f:
     points=[[x,float(y)] for x,y in csv.reader(f)]
   x=[datetime.datetime.fromisoformat(p[0]) for p in points]
   y=[p[1] for p in points]
@@ -43,5 +43,5 @@ def points():
   plt.plot(x2,y2,zorder=1)
   plt.scatter(x,y,s=8,c='black',zorder=2)
   plt.show()
-points()
+#points()
 
