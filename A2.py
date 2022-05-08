@@ -108,7 +108,7 @@ for expI in range(1):
     #print(''.join(['%7.2f'%a for a in [t]+gCases[caseI:caseI+nCases]+past_in[-1]+[sum(past_out[-1])]]))
     train_x.append(gCases[caseIs[t]:caseIs[t]+nCases])
     train_x[-1].extend(past_in[t])
-    train_y.append(past_out[t])
+    train_y.append([sum(past_out[t])])
     test_x=[]
     for idx in range(nBins**nDeaths):
       a=[bins[i] for i in itol(idx,[nBins]*nDeaths)]
@@ -125,7 +125,7 @@ for expI in range(1):
     for i in range(nDeaths):
       points.append([dates[caseI+nCases-nDeaths+i],best_x[i]])
     past_in.append(best_x)
-    past_out.append([sum(f(caseI + (nCases-nDeaths), np.array(best_x)))])
+    past_out.append(f(caseI + (nCases-nDeaths), np.array(best_x)))
 
   # APPEND MODE
   filename='A2.csv'
