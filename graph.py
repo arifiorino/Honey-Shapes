@@ -2,8 +2,9 @@
 import matplotlib.pyplot as plt, numpy as np, csv, datetime
 
 def A3_A4():
-  files = ['A3.csv', 'A4.csv']
-  labels = ['Algo 3', 'Algo 4']
+  n=[1,4]
+  files = ['A%d.csv'%i for i in n]
+  labels = ['Algo %d'%i for i in n]
   datas = []
   for filename in files:
     with open(filename, 'r') as f:
