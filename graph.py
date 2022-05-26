@@ -2,7 +2,7 @@
 import matplotlib.pyplot as plt, numpy as np, csv, datetime
 
 def A3_A4():
-  n=[1,4]
+  n=[1]
   files = ['A%d.csv'%i for i in n]
   labels = ['Algo %d'%i for i in n]
   datas = []
@@ -44,5 +44,5 @@ def points():
   plt.plot(x2,y2,zorder=1)
   plt.scatter(x,y,s=8,c='black',zorder=2)
   plt.show()
-#points()
+points()
 
