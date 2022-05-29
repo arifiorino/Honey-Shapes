@@ -9,10 +9,9 @@ N_losses = 3
 algos=[A1,A1p,A2,A2p,A3,A4,A4p,A4pp]
 ucb_mult= 1
 device='cuda'
-context = [5,0,5,0,5]
+nExp=100
 GP_ERROR = 0.01
 RBF_SIGMA = 2
-nExp=100
 def GP(xs, F, x):
   xs,F,x=torch.Tensor(xs).to(device),torch.Tensor(F).to(device),torch.Tensor(x).to(device)
   xs1 = torch.pow(xs,2)@torch.ones((xs.size()[1],1)).to(device)
@@ -33,8 +32,9 @@ def GP(xs, F, x):
   return (mean.to('cpu').numpy(), stdev.to('cpu').numpy())
 
 K=N_actions-N_losses+1
-A=[context[i:i+K] for i in range(N_losses)]
-B=allSequences(K,N)
+A=allSequences(K,2) #context
+A=[[y*5 for y in x] for x in A]
+B=allSequences(K,N) #actions
 A=[a+b for b in B for a in A]
 #calculate covariance of A
 A=torch.Tensor(A).to(device)
@@ -42,30 +42,32 @@ A1 = torch.pow(A,2)@torch.ones((A.size()[1],1)).to(device)
 A1 = torch.cat([torch.t(A1)]*A.size()[0])
 A = A1 - 2*(A @ torch.t(A)) + torch.t(A1)
 A = torch.exp(-A/(2*RBF_SIGMA**2)).to('cpu').numpy()
-actual_gp = np.random.multivariate_normal(np.zeros(N**K*N_losses),A)
+actual_gp = np.random.multivariate_normal(np.zeros((N**K)*(2**K)),A)
 
-def f(x):
-  assert(len(x)==len(context))
+def f(c,x):
+  assert(len(c)==len(x))
   r = []
   for i in range(N_losses):
-    idx=i+sum([a*N**b for b,a in enumerate(x[i:i+K])])*N_losses
+    idx=sum([(a//5)*2**b for b,a in enumerate(c[i:i+K])])
+    idx+=sum([a*N**b for b,a in enumerate(x[i:i+K])]) * 2**K
     r.append(actual_gp[idx])
   return r
 
 for expI in range(nExp):
   print(expI,end=' ',flush=True)
   start=np.random.choice(N, N_actions).tolist()
+  contexts=(np.random.choice(2, (101,N_actions))*5).tolist()
   for algo in algos:
     print(algo.name,end=' ',flush=True)
     past_in = [start]
-    past_out = [f(start)]
+    past_out = [f(contexts[0],start)]
     train_x, train_y = [], []
     for t in range(100):
       #print(''.join(['%7.2f'%a for a in [t]+past_in[-1]+[sum(past_out[-1])]]))
-      algo.addTrainingData(context,past_in[t],past_out[t],train_x,train_y)
-      best_x=algo.findUCB(context,list(range(N)),train_x,train_y,GP,ucb_mult)
+      algo.addTrainingData(contexts[t],past_in[t],past_out[t],train_x,train_y)
+      best_x=algo.findUCB(contexts[t+1],list(range(N)),train_x,train_y,GP,ucb_mult)
       past_in.append(best_x)
-      past_out.append(f(np.array(best_x)))
+      past_out.append(f(contexts[t+1],np.array(best_x)))
 
     # APPEND MODE
     filename='res/'+algo.name+'.csv'
